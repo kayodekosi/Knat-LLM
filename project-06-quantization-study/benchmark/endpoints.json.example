@@ -1,0 +1,5 @@
+[
+  { "name": "FP16", "base_url": "http://localhost:8001/v1", "model": "mistralai/Mistral-7B-Instruct-v0.3" },
+  { "name": "INT8", "base_url": "http://localhost:8002/v1", "model": "mistralai/Mistral-7B-Instruct-v0.3-int8" },
+  { "name": "AWQ",  "base_url": "http://localhost:8003/v1", "model": "mistralai/Mistral-7B-Instruct-v0.3-awq" }
+]

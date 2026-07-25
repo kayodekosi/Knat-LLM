@@ -1,0 +1,14 @@
+# Requires the Prometheus Operator (e.g. installed via kube-prometheus-stack).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: llm-server-monitor
+  namespace: knat-llm
+spec:
+  selector:
+    matchLabels:
+      app: llm-server
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s

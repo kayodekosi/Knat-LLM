@@ -1,0 +1,26 @@
+# Defines the automated pass/fail gate the canary rollout above checks before
+# advancing each traffic-weight step. Requires the Prometheus Operator stack
+# from Project 3 to already be scraping the llm-server Service.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-and-error-rate
+  namespace: knat-llm
+spec:
+  metrics:
+    - name: p95-latency
+      interval: 1m
+      successCondition: result[0] < 2.5
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring.svc:9090
+          query: |
+            histogram_quantile(0.95, sum(rate(vllm_request_latency_seconds_bucket{app="llm-server"}[5m])) by (le))
+    - name: error-rate
+      interval: 1m
+      successCondition: result[0] < 0.02
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring.svc:9090
+          query: |
+            sum(rate(vllm_request_failure_total{app="llm-server"}[5m])) / sum(rate(vllm_request_total{app="llm-server"}[5m]))

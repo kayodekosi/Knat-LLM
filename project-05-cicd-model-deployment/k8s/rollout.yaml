@@ -1,0 +1,41 @@
+# Requires Argo Rollouts installed in the cluster (kubectl argo rollouts).
+# Replaces a plain Deployment with a Rollout resource so ArgoCD-driven image
+# bumps go through a canary process instead of an instant full replacement.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: llm-server
+  namespace: knat-llm
+spec:
+  replicas: 4
+  strategy:
+    canary:
+      steps:
+        - setWeight: 10
+        - pause: { duration: 5m }
+        - setWeight: 25
+        - pause: { duration: 10m }
+        - analysis:
+            templates:
+              - templateName: latency-and-error-rate
+        - setWeight: 50
+        - pause: { duration: 10m }
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: llm-server
+  template:
+    metadata:
+      labels:
+        app: llm-server
+    spec:
+      containers:
+        - name: llm-server
+          image: registry.knatware.com/knat-llm/llm-server:latest
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 45

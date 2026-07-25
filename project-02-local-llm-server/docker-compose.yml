@@ -1,0 +1,25 @@
+services:
+  vllm-server:
+    image: vllm/vllm-openai:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: >
+      --model ${MODEL_NAME}
+      --max-model-len ${MAX_MODEL_LEN}
+      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION}
+      --host 0.0.0.0
+      --port 8000
+
+volumes:
+  hf_cache:

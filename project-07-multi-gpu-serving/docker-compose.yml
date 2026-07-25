@@ -1,0 +1,27 @@
+services:
+  vllm-multi-gpu:
+    image: vllm/vllm-openai:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    shm_size: "16gb"          # tensor parallelism uses shared memory for inter-GPU comms
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${TENSOR_PARALLEL_SIZE:-2}
+              capabilities: [gpu]
+    command: >
+      --model ${MODEL_NAME}
+      --tensor-parallel-size ${TENSOR_PARALLEL_SIZE}
+      --max-model-len ${MAX_MODEL_LEN}
+      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION}
+      --host 0.0.0.0
+      --port 8000
+
+volumes:
+  hf_cache:

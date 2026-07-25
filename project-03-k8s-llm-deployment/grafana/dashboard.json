@@ -1,0 +1,11 @@
+{
+  "title": "Knat LLM - Inference Serving Overview",
+  "description": "Requests/sec, latency percentiles, GPU utilization, and pod replica count for the llm-server deployment.",
+  "panels": [
+    { "title": "Requests per second", "type": "graph", "targets": ["rate(vllm_request_success_total[5m])"] },
+    { "title": "P95 latency (s)", "type": "graph", "targets": ["histogram_quantile(0.95, vllm_request_latency_seconds_bucket)"] },
+    { "title": "GPU utilization (%)", "type": "graph", "targets": ["DCGM_FI_DEV_GPU_UTIL"] },
+    { "title": "Active pod replicas", "type": "stat", "targets": ["kube_deployment_status_replicas{deployment=\"llm-server\"}"] }
+  ],
+  "note": "Import into Grafana via Dashboards > Import, pointing at a Prometheus data source scraping the ServiceMonitor and node-exporter/DCGM exporter for GPU metrics."
+}

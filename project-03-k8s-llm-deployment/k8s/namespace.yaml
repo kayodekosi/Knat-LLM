@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: knat-llm
+  labels:
+    project: knat-llm-serving

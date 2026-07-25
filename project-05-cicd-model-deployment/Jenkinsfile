@@ -1,0 +1,84 @@
+// Knat LLM — Project 5: CI pipeline for a model-serving image.
+// On every push to main (or a tag matching v*.*.*), this pipeline:
+//   1. Builds a new container image for the model server, tagged with the git SHA
+//   2. Runs a smoke test against the built image
+//   3. Pushes the image to the container registry
+//   4. Updates the image tag in the GitOps repo/manifest that ArgoCD watches,
+//      which triggers the canary rollout defined in k8s/rollout.yaml
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY        = "registry.knatware.com/knat-llm"
+        IMAGE_NAME      = "llm-server"
+        IMAGE_TAG       = "${env.GIT_COMMIT.take(7)}"
+        GITOPS_REPO     = "git@github.com:Knat-LLM/knat-llm-gitops.git"
+        GITOPS_MANIFEST = "apps/llm-server/values.yaml"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                sh """
+                    docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
+                """
+            }
+        }
+
+        stage('Smoke test') {
+            steps {
+                sh """
+                    docker run -d --name smoke-test -p 8010:8000 ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    sleep 15
+                    curl --fail http://localhost:8010/health || (docker logs smoke-test && exit 1)
+                    docker rm -f smoke-test
+                """
+            }
+        }
+
+        stage('Push image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'registry-creds', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
+                    sh """
+                        echo "\$REG_PASS" | docker login ${REGISTRY} -u "\$REG_USER" --password-stdin
+                        docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Update GitOps manifest') {
+            steps {
+                sshagent(credentials: ['gitops-deploy-key']) {
+                    sh """
+                        git clone ${GITOPS_REPO} gitops-repo
+                        cd gitops-repo
+                        sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" ${GITOPS_MANIFEST}
+                        git config user.email "ci@knatware.com"
+                        git config user.name "Knatware CI"
+                        git commit -am "ci: bump llm-server image to ${IMAGE_TAG}"
+                        git push origin main
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker rm -f smoke-test || true'
+        }
+        success {
+            echo "Image ${IMAGE_TAG} built, tested, pushed, and handed off to ArgoCD for canary rollout."
+        }
+        failure {
+            echo "Pipeline failed — no GitOps manifest update was made, so ArgoCD will not deploy this build."
+        }
+    }
+}
