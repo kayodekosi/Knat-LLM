@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Knat's Fine-Tuning Cycle — The Comic</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFF6E4;
+    --ink:#181818;
+    --blue:#2E5EFF;
+    --coral:#FF4D6D;
+    --gold:#FFC93C;
+    --mint:#00C2A8;
+    --violet:#8B5CF6;
+    --panel-shadow: 6px 6px 0 var(--ink);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1.2px) 0 0/14px 14px,
+      var(--paper);
+    font-family:'Baloo 2', sans-serif;
+    color:var(--ink);
+    padding:28px 14px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    text-align:center;
+    margin-bottom:34px;
+    position:relative;
+  }
+  .kicker{
+    font-family:'Baloo 2';
+    font-weight:800;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    font-size:13px;
+    color:var(--violet);
+    background:#fff;
+    display:inline-block;
+    padding:4px 14px;
+    border:3px solid var(--ink);
+    border-radius:20px;
+    box-shadow:3px 3px 0 var(--ink);
+    transform:rotate(-2deg);
+  }
+  h1{
+    font-family:'Bangers', cursive;
+    font-size:clamp(38px,7vw,74px);
+    line-height:0.95;
+    margin:14px 0 6px;
+    letter-spacing:2px;
+    color:var(--ink);
+    text-shadow:
+      3px 3px 0 var(--gold),
+      6px 6px 0 var(--ink);
+  }
+  .sub{
+    font-size:17px;
+    font-weight:700;
+    max-width:640px;
+    margin:10px auto 0;
+    color:#333;
+  }
+  .sub span{background:var(--mint); padding:1px 6px; border-radius:4px; color:#fff;}
+
+  /* ---------- COMIC GRID ---------- */
+  .strip{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:26px;
+    margin-top:38px;
+  }
+  @media (max-width:900px){ .strip{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .strip{grid-template-columns:1fr;} }
+
+  .panel{
+    background:#fff;
+    border:4px solid var(--ink);
+    border-radius:10px;
+    box-shadow:var(--panel-shadow);
+    padding:16px 14px 18px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    min-height:300px;
+  }
+  .panel:nth-child(odd){ transform:rotate(-0.6deg); }
+  .panel:nth-child(even){ transform:rotate(0.6deg); }
+  .panel:hover{ transform:rotate(0deg) translateY(-3px); transition:0.15s; }
+
+  .num{
+    position:absolute;
+    top:-16px; left:-16px;
+    width:42px;height:42px;
+    background:var(--ink);
+    color:#fff;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Bangers';
+    font-size:22px;
+    border:3px solid #fff;
+    box-shadow:2px 2px 0 rgba(0,0,0,0.4);
+    z-index:3;
+  }
+  .cat{
+    align-self:flex-start;
+    font-family:'Bangers';
+    letter-spacing:1px;
+    font-size:12px;
+    padding:2px 10px;
+    border-radius:5px;
+    color:#fff;
+    margin-bottom:8px;
+    text-transform:uppercase;
+  }
+  .scene{
+    font-size:52px;
+    text-align:center;
+    line-height:1.1;
+    margin:2px 0 10px;
+    user-select:none;
+  }
+  .sfx{
+    font-family:'Bangers';
+    font-size:24px;
+    text-align:center;
+    letter-spacing:1px;
+    margin:-6px 0 8px;
+    color:var(--coral);
+    -webkit-text-stroke:1px var(--ink);
+  }
+  .bubble{
+    background:#fff;
+    border:3px solid var(--ink);
+    border-radius:16px;
+    padding:8px 12px;
+    font-weight:700;
+    font-size:14.5px;
+    position:relative;
+    margin-bottom:10px;
+  }
+  .bubble::after{
+    content:"";
+    position:absolute;
+    left:24px; bottom:-13px;
+    width:0;height:0;
+    border:9px solid transparent;
+    border-top-color:#fff;
+    border-bottom:0;
+    filter:drop-shadow(0 1px 0 var(--ink));
+  }
+  .bubble::before{
+    content:"";
+    position:absolute;
+    left:22px; bottom:-17px;
+    width:0;height:0;
+    border:11px solid transparent;
+    border-top-color:var(--ink);
+    border-bottom:0;
+  }
+  .capbox{
+    margin-top:auto;
+    background:var(--paper);
+    border:2px dashed var(--ink);
+    border-radius:6px;
+    padding:7px 9px;
+    font-size:11.5px;
+    line-height:1.4;
+    font-family:'Baloo 2';
+    font-weight:600;
+    color:#444;
+  }
+  .capbox b{ color:var(--ink); }
+
+  .cat.setup{background:var(--blue);}
+  .cat.data{background:var(--coral);}
+  .cat.model{background:var(--gold); color:var(--ink);}
+  .cat.tune{background:var(--violet);}
+  .cat.train{background:var(--mint);}
+  .cat.ship{background:#333;}
+
+  /* ---------- LOOP CONNECTOR ---------- */
+  .loop{
+    margin:44px auto 10px;
+    max-width:760px;
+    text-align:center;
+    position:relative;
+  }
+  .loop-arc{
+    font-size:15px;
+    font-weight:800;
+    background:var(--gold);
+    border:3px solid var(--ink);
+    border-radius:40px;
+    padding:14px 22px;
+    display:inline-block;
+    box-shadow:5px 5px 0 var(--ink);
+    transform:rotate(-1deg);
+  }
+  .loop-arc .big{
+    font-family:'Bangers';
+    font-size:22px;
+    color:var(--coral);
+    -webkit-text-stroke:1px var(--ink);
+    display:block;
+    margin-bottom:4px;
+    letter-spacing:1px;
+  }
+
+  /* ---------- CAST / LEGEND ---------- */
+  /* ---------- ACRONYM ---------- */
+  .acronym{
+    margin-top:50px;
+    background:var(--ink);
+    color:#fff;
+    border:4px solid var(--ink);
+    border-radius:10px;
+    box-shadow:6px 6px 0 var(--gold);
+    padding:22px 22px 20px;
+  }
+  .acronym h2{
+    font-family:'Bangers';
+    font-size:28px;
+    letter-spacing:1px;
+    margin:0 0 4px;
+    color:var(--gold);
+  }
+  .acronym p.lead{
+    font-size:13.5px;
+    font-weight:700;
+    color:#ddd;
+    margin:0 0 16px;
+  }
+  .letters{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:14px;
+  }
+  @media (max-width:700px){ .letters{grid-template-columns:repeat(2,1fr);} }
+  .letter-card{
+    background:#242424;
+    border:2px solid var(--gold);
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  .letter-card .L{
+    font-family:'Bangers';
+    font-size:30px;
+    color:var(--gold);
+    line-height:1;
+  }
+  .letter-card .word{
+    font-family:'Bangers';
+    font-size:15px;
+    letter-spacing:0.5px;
+    margin:2px 0 3px;
+  }
+  .letter-card .desc{
+    font-size:11.5px;
+    font-weight:600;
+    color:#ccc;
+    line-height:1.35;
+  }
+  .loop-tag{
+    background:var(--coral);
+    color:#fff;
+    border:2px solid var(--gold);
+    border-radius:8px;
+    padding:10px 14px;
+    font-size:13px;
+    font-weight:700;
+    text-align:center;
+  }
+  .loop-tag b{ font-family:'Bangers'; font-size:16px; letter-spacing:0.5px; }
+
+  .cast{
+    margin-top:50px;
+    background:#fff;
+    border:4px solid var(--ink);
+    border-radius:10px;
+    box-shadow:var(--panel-shadow);
+    padding:20px 22px;
+  }
+  .cast h2{
+    font-family:'Bangers';
+    font-size:26px;
+    letter-spacing:1px;
+    margin:0 0 12px;
+  }
+  .cast-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:12px;
+    font-size:13.5px;
+    font-weight:600;
+    line-height:1.5;
+  }
+  .cast-grid div{padding:8px 10px; background:var(--paper); border:2px solid var(--ink); border-radius:8px;}
+  .cast-grid b{display:block; font-family:'Bangers'; font-size:15px; letter-spacing:0.5px; margin-bottom:2px;}
+
+  footer{
+    text-align:center;
+    margin-top:40px;
+    font-size:12px;
+    color:#777;
+    font-weight:700;
+  }
+  .btnrow{ text-align:center; margin:26px 0 6px; }
+  .dl{
+    display:inline-block;
+    font-family:'Bangers';
+    letter-spacing:1px;
+    font-size:16px;
+    background:var(--coral);
+    color:#fff;
+    border:3px solid var(--ink);
+    border-radius:10px;
+    padding:10px 22px;
+    box-shadow:4px 4px 0 var(--ink);
+    cursor:pointer;
+    text-decoration:none;
+  }
+  .dl:active{ transform:translate(2px,2px); box-shadow:2px 2px 0 var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="kicker">Knatware Technology presents</span>
+    <h1>THE FINE-TUNING<br>CYCLE!</h1>
+    <p class="sub">Starring <b>KNAT</b> 🦟🤖 the fine-tuning gnat, based scene-for-scene on
+      <span>Knatware_LLM_FineTuning_V2_Colab.ipynb</span> — every panel maps to a real section of the notebook.</p>
+  </header>
+
+  <div class="btnrow">
+    <a class="dl" href="#" onclick="return false;">⬇ SAVE THIS PAGE (Ctrl/Cmd+S) TO KEEP YOUR COPY</a>
+  </div>
+
+  <div class="strip">
+
+    <!-- 1 -->
+    <div class="panel">
+      <div class="num">1</div>
+      <span class="cat setup">Setup</span>
+      <div class="scene">🦟💪🖥️</div>
+      <div class="sfx">VROOM?!</div>
+      <div class="bubble">"Runtime &gt; Change runtime type &gt; GPU... please tell me I got a GPU!"</div>
+      <div class="capbox"><b>Section 1 — Environment Setup:</b> runs <b>!nvidia-smi</b> to confirm a GPU is attached, then installs transformers, datasets, accelerate, peft, trl &amp; bitsandbytes.</div>
+    </div>
+
+    <!-- 2 -->
+    <div class="panel">
+      <div class="num">2</div>
+      <span class="cat setup">Setup</span>
+      <div class="scene">🦟🪪🚪</div>
+      <div class="sfx">BEEP BOOP</div>
+      <div class="bubble">"Hugging Face badge? Check. W&amp;B badge? Optional, but I like dashboards."</div>
+      <div class="capbox"><b>Section 2 — HF &amp; W&amp;B Login:</b> optional <b>login()</b> for gated models (Llama, Gemma) or pushing to the Hub, plus optional Weights &amp; Biases tracking.</div>
+    </div>
+
+    <!-- 3 -->
+    <div class="panel">
+      <div class="num">3</div>
+      <span class="cat setup">Setup</span>
+      <div class="scene">🦟🎛️📋</div>
+      <div class="sfx">CLICK. CLICK.</div>
+      <div class="bubble">"Model: Qwen2.5-1.5B. Dataset: guanaco-llama2-1k. Everything downstream reads from ME."</div>
+      <div class="capbox"><b>Section 3 — Core Config:</b> sets <b>MODEL_NAME</b>, <b>DATASET_NAME</b>, <b>OUTPUT_DIR</b>, <b>MAX_SEQ_LENGTH</b>=1024 and <b>USE_4BIT</b>=True in one control block.</div>
+    </div>
+
+    <!-- 4 -->
+    <div class="panel">
+      <div class="num">4</div>
+      <span class="cat data">Data</span>
+      <div class="scene">🦟🪣📚➡️</div>
+      <div class="sfx">SHOVEL SHOVEL</div>
+      <div class="bubble">"Load the dataset, mash instruction + response into one tidy 'text' column!"</div>
+      <div class="capbox"><b>Section 4 — Load &amp; Preprocess:</b> pulls the dataset from the Hub (or a local file) and, if needed, formats fields into the single <b>text</b> field SFTTrainer expects.</div>
+    </div>
+
+    <!-- 5 -->
+    <div class="panel">
+      <div class="num">5</div>
+      <span class="cat model">Model</span>
+      <div class="scene">🦟🧳🫸🤖</div>
+      <div class="sfx">SQUEEEEZE!</div>
+      <div class="bubble">"Big model, tiny GPU. Time to shrink it to 4-bit — QLoRA style!"</div>
+      <div class="capbox"><b>Section 5 — Tokenizer &amp; Base Model:</b> loads the tokenizer, sets a pad token, and loads the base model in 4-bit precision (BitsAndBytesConfig) to fit a free-tier T4.</div>
+    </div>
+
+    <!-- 6 -->
+    <div class="panel">
+      <div class="num">6</div>
+      <span class="cat tune">Tune</span>
+      <div class="scene">🥶🤖➕🩹🩹</div>
+      <div class="sfx">STICK! STICK!</div>
+      <div class="bubble">"Freeze the big guy solid — I'll just bolt on some tiny trainable patches."</div>
+      <div class="capbox"><b>Section 6 — Configure LoRA:</b> freezes base weights, attaches low-rank adapters (<b>r=16, alpha=32, dropout=0.05</b>) onto the q/k/v/o projection layers. Only ~1-2% of params train.</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="panel">
+      <div class="num">7</div>
+      <span class="cat tune">Tune</span>
+      <div class="scene">🦟🎚️🎚️🎚️</div>
+      <div class="sfx">TWEAK TWEAK</div>
+      <div class="bubble">"Learning rate: 2e-4. Batch: 2, x4 grad accumulation. Cosine schedule. Chef's kiss."</div>
+      <div class="capbox"><b>Section 7 — Training Args:</b> sets epochs=3, batch size, gradient accumulation, learning rate, warmup, cosine LR schedule, bf16, and gradient checkpointing — the real "tuning" knobs.</div>
+    </div>
+
+    <!-- 8 -->
+    <div class="panel">
+      <div class="num">8</div>
+      <span class="cat train">Train</span>
+      <div class="scene">🦟🚴💨📉</div>
+      <div class="sfx">HUFF! PUFF! PEDAL!</div>
+      <div class="bubble">"trainer.train()... this is the long one. Loss, go DOWN!"</div>
+      <div class="capbox"><b>Section 8 — Build Trainer &amp; Train:</b> SFTTrainer wraps model + args + dataset + LoRA config, then <b>trainer.train()</b> runs the actual fine-tuning loop, logging loss every 10 steps.</div>
+    </div>
+
+    <!-- 9 -->
+    <div class="panel">
+      <div class="num">9</div>
+      <span class="cat ship">Ship</span>
+      <div class="scene">🦟📦💾☁️</div>
+      <div class="sfx">SEALED &amp; SAVED!</div>
+      <div class="bubble">"Adapter's tiny — a few MB! Save it, maybe merge it, maybe mail it to the Hub."</div>
+      <div class="capbox"><b>Sections 9-10 — Save &amp; Push:</b> saves the small LoRA adapter + tokenizer to <b>OUTPUT_DIR</b>; optional merge into a standalone model; optional <b>push_to_hub()</b>.</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="panel">
+      <div class="num">10</div>
+      <span class="cat ship">Ship</span>
+      <div class="scene">🦟🔍💬✨</div>
+      <div class="sfx">DOES IT WORK?!</div>
+      <div class="bubble">"Load base model + adapter, ask it a question... ooh, that's actually good!"</div>
+      <div class="capbox"><b>Section 11 — Quick Inference Test:</b> reloads the base model, attaches the fine-tuned adapter, and generates a sample response as a sanity check.</div>
+    </div>
+
+    <!-- 11 -->
+    <div class="panel">
+      <div class="num">11</div>
+      <span class="cat tune">Tune</span>
+      <div class="scene">🦟🎰🔁</div>
+      <div class="sfx">SPIN AGAIN!</div>
+      <div class="bubble">"Not happy with the loss? Sweep a few learning rates and LoRA ranks, compare, repeat!"</div>
+      <div class="capbox"><b>Section 12 — Hyperparameter Sweep (optional):</b> a small grid-search loop over settings like learning rate to compare training loss across mini-runs.</div>
+    </div>
+
+  </div>
+
+  <div class="loop">
+    <div class="loop-arc">
+      <span class="big">🔁 THE CYCLE CONTINUES!</span>
+      Not good enough yet? Knat hops back to Panel 3 or 7, tweaks the config or hyperparameters,
+      and runs the whole loop again — that's the "tuning" in fine-tuning.
+    </div>
+  </div>
+
+  <div class="acronym">
+    <h2>🧠 Remember it with: F.I.N.E. T.U.N.E.</h2>
+    <p class="lead">The 8 core panels spell out the very word this notebook is all about. Say it out loud before you open Colab.</p>
+    <div class="letters">
+      <div class="letter-card"><span class="L">F</span><div class="word">Fire up</div><div class="desc">Panel 1 — check GPU, install libraries.</div></div>
+      <div class="letter-card"><span class="L">I</span><div class="word">Identify</div><div class="desc">Panel 2 — log in to Hugging Face / W&amp;B.</div></div>
+      <div class="letter-card"><span class="L">N</span><div class="word">Name the config</div><div class="desc">Panel 3 — model, dataset, output dir, seq length.</div></div>
+      <div class="letter-card"><span class="L">E</span><div class="word">Extract data</div><div class="desc">Panel 4 — load + format the dataset's "text" field.</div></div>
+      <div class="letter-card"><span class="L">T</span><div class="word">Transform in 4-bit</div><div class="desc">Panel 5 — load tokenizer + QLoRA base model.</div></div>
+      <div class="letter-card"><span class="L">U</span><div class="word">Upgrade w/ LoRA</div><div class="desc">Panel 6 — freeze base, attach adapter patches.</div></div>
+      <div class="letter-card"><span class="L">N</span><div class="word">Nail the knobs</div><div class="desc">Panel 7 — learning rate, epochs, batch, schedule.</div></div>
+      <div class="letter-card"><span class="L">E</span><div class="word">Engage!</div><div class="desc">Panel 8 — trainer.train() actually runs.</div></div>
+    </div>
+    <div class="loop-tag">Then comes <b>S.T.S.</b> — <b>S</b>ave, <b>T</b>est, <b>S</b>weep (Panels 9-11) — and if the sweep says "try again," you loop back to <b>N</b>ame-the-config or <b>N</b>ail-the-knobs and re-run the cycle. 🔁</div>
+  </div>
+
+  <div class="cast">
+    <h2>🦟 Meet the Cast &amp; Crew</h2>
+    <div class="cast-grid">
+      <div><b>KNAT</b> The mascot. A gnat-shaped robot who represents the whole notebook — small, fast, and surprisingly good at squeezing into tight GPU memory.</div>
+      <div><b>THE BIG FROZEN MODEL</b> Qwen2.5-1.5B-Instruct, loaded in 4-bit. Doesn't move (frozen weights) — Knat's LoRA patches do all the learning.</div>
+      <div><b>THE ADAPTER PATCHES</b> The small LoRA matrices (r=16) that get trained. Tiny in file size, big in effect.</div>
+      <div><b>THE DATA HOPPER</b> The guanaco-llama2-1k dataset, formatted into one clean "text" field before training.</div>
+      <div><b>THE TREADMILL</b> SFTTrainer — where 3 epochs of actual training happen, logging loss the whole way.</div>
+      <div><b>THE HUB</b> Hugging Face Hub — optional final destination for the finished adapter.</div>
+    </div>
+  </div>
+
+  <footer>Comic guide to Knatware_LLM_FineTuning_V2_Colab.ipynb · kayodekosi/Knat-LLM · Made for learning, not for training — go run the real notebook after this! 🦟</footer>
+
+</div>
+</body>
+</html>
