@@ -1,0 +1,113 @@
+{
+  "name": "Knatware LLM Chain — Open-Source Model Inference (Hugging Face)",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 480,
+        "height": 320,
+        "content": "## Knatware LLM Chain — Open-Source Model Inference\nA minimal chat workflow that sends your message to an **open-source model hosted on Hugging Face** via the free Hugging Face Inference API — no local GPU required.\n\n### How it works\n1. **When chat message received** — n8n's built-in chat UI captures your message.\n2. **Basic LLM Chain** — forwards it to the connected model.\n3. **Hugging Face Inference Model** — runs the open-source model on Hugging Face's servers and returns the reply.\n\nClick **Chat** at the bottom of the canvas (after activating this workflow) to talk to it.\n\n### Changing the model\nOpen the **Hugging Face Inference Model** node and edit the **Model** field to any Hugging Face repo id (e.g. `Qwen/Qwen2.5-1.5B-Instruct`, `mistralai/Mistral-7B-Instruct-v0.3`, `meta-llama/Llama-3.2-3B-Instruct`, `HuggingFaceH4/zephyr-7b-beta`) — no other changes needed."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -100
+      ],
+      "id": "36428003-7738-4c0d-9f08-e4688390a89d",
+      "name": "Overview"
+    },
+    {
+      "parameters": {
+        "color": 6,
+        "width": 420,
+        "height": 280,
+        "content": "## Hugging Face Setup\n1. Get a free token: https://huggingface.co/settings/tokens (Read access is enough for public models).\n2. In the **Hugging Face Inference Model** node below, click **Credential to connect with > Create new credential**, and paste the token.\n3. Set the **Model** field to any Hugging Face repo id you have inference access to. Smaller instruct models (1B-8B) respond fastest on the free tier.\n4. Gated models (e.g. Llama, Gemma) require accepting the license on the model's Hugging Face page first, with a token that has access."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        260,
+        240
+      ],
+      "id": "55eb0535-3536-417a-865a-ea482a274d7d",
+      "name": "Hugging Face Setup"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        260,
+        -80
+      ],
+      "id": "31d8715d-ad0a-4343-93e6-2667beaea223",
+      "name": "When chat message received",
+      "webhookId": "869e7917-ea90-46a0-8069-eb02ba513526"
+    },
+    {
+      "parameters": {
+        "promptType": "auto",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a helpful assistant running on a free, open-source language model hosted on Hugging Face. Answer clearly and concisely."
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        520,
+        -80
+      ],
+      "id": "59150ed9-45e4-44c3-a4e0-aa6fa6625d8f",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOpenHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        520,
+        160
+      ],
+      "id": "0b459edc-9cee-4ba3-82fe-d6e6fdd6394a",
+      "name": "Hugging Face Inference Model"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hugging Face Inference Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "f9d9339255ac4ba0a11cb1f476041cea"
+  }
+}
