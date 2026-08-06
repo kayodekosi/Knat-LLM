@@ -1,36 +1,36 @@
 {
-  "name": "Knatware LLM Chain — Open-Source Model Inference (Hugging Face)",
+  "name": "Knatware LLM Chain — Open-Source Model Inference (OpenRouter)",
   "nodes": [
     {
       "parameters": {
-        "width": 480,
-        "height": 320,
-        "content": "## Knatware LLM Chain — Open-Source Model Inference\nA minimal chat workflow that sends your message to an **open-source model hosted on Hugging Face** via the free Hugging Face Inference API — no local GPU required.\n\n### How it works\n1. **When chat message received** — n8n's built-in chat UI captures your message.\n2. **Basic LLM Chain** — forwards it to the connected model.\n3. **Hugging Face Inference Model** — runs the open-source model on Hugging Face's servers and returns the reply.\n\nClick **Chat** at the bottom of the canvas (after activating this workflow) to talk to it.\n\n### Changing the model\nOpen the **Hugging Face Inference Model** node and edit the **Model** field to any Hugging Face repo id (e.g. `Qwen/Qwen2.5-1.5B-Instruct`, `mistralai/Mistral-7B-Instruct-v0.3`, `meta-llama/Llama-3.2-3B-Instruct`, `HuggingFaceH4/zephyr-7b-beta`) — no other changes needed."
+        "width": 520,
+        "height": 380,
+        "content": "## Knatware LLM Chain — Open-Source Model Inference\nA minimal chat workflow that sends your message to a **free, open-weight model via OpenRouter** — fully cloud-hosted, nothing to install, no credit card required.\n\n### Why OpenRouter, not Ollama or a raw OpenAI-node hack?\n- **No local install / disk space** — Ollama needs several GB per model downloaded to your machine. OpenRouter runs entirely in the cloud.\n- **No billing surprises** — this uses n8n's dedicated **OpenRouter Chat Model** node with OpenRouter's own credential type, not a repointed OpenAI node. (An earlier version of this workflow tried overriding the OpenAI node's Base URL to reach Hugging Face's router — that override didn't reliably take effect and silently billed a real OpenAI account instead. A dedicated node avoids that class of bug entirely.)\n- **Genuinely open-source models, genuinely free** — OpenRouter's `:free` tier is open-weight only (Llama, Qwen, Gemma, GPT-OSS, DeepSeek, Mistral, etc.), $0 balance required.\n\n### How it works\n1. **When chat message received** — n8n's built-in chat UI.\n2. **Basic LLM Chain** — forwards it to the connected model.\n3. **OpenRouter Chat Model** — runs the model in the cloud and returns the reply.\n\nClick **Chat** at the bottom of the canvas (after activating) to talk to it."
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
-        -100
+        -380,
+        -140
       ],
-      "id": "36428003-7738-4c0d-9f08-e4688390a89d",
+      "id": "e20285d8-f2ff-48c4-a13b-8c07b57916ce",
       "name": "Overview"
     },
     {
       "parameters": {
         "color": 6,
-        "width": 420,
-        "height": 280,
-        "content": "## Hugging Face Setup\n1. Get a free token: https://huggingface.co/settings/tokens (Read access is enough for public models).\n2. In the **Hugging Face Inference Model** node below, click **Credential to connect with > Create new credential**, and paste the token.\n3. Set the **Model** field to any Hugging Face repo id you have inference access to. Smaller instruct models (1B-8B) respond fastest on the free tier.\n4. Gated models (e.g. Llama, Gemma) require accepting the license on the model's Hugging Face page first, with a token that has access."
+        "width": 480,
+        "height": 380,
+        "content": "## OpenRouter Setup\n1. Create a free account and API key: https://openrouter.ai/keys — no credit card needed for `:free` models.\n2. On the **OpenRouter Chat Model** node below, click **Credential to connect with > Create new credential**, choose **OpenRouter API**, and paste your key.\n3. The **Model** field defaults to `openrouter/free` — a router that automatically picks from whatever open-weight models are currently free, so this workflow keeps working even as OpenRouter's specific free-model roster changes week to week (it genuinely does churn — models get added and removed regularly).\n4. Click into the **Model** field to browse/pick a *specific* model instead — see the current free roster at https://openrouter.ai/models?max_price=0. Any model id ending in `:free` costs nothing; anything else will bill your OpenRouter balance per token.\n5. Free tier rate limits (subject to change): roughly 20 requests/minute, 50-1000 requests/day depending on account history — plenty for personal/testing use, not for production traffic."
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        260,
-        240
+        280,
+        300
       ],
-      "id": "55eb0535-3536-417a-865a-ea482a274d7d",
-      "name": "Hugging Face Setup"
+      "id": "3df68c0f-eb21-4a31-919c-62b9ea68faa6",
+      "name": "OpenRouter Setup"
     },
     {
       "parameters": {
@@ -39,12 +39,12 @@
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.3,
       "position": [
-        260,
-        -80
+        280,
+        -100
       ],
-      "id": "31d8715d-ad0a-4343-93e6-2667beaea223",
+      "id": "2c232168-a992-4417-b83f-7d5752ac0072",
       "name": "When chat message received",
-      "webhookId": "869e7917-ea90-46a0-8069-eb02ba513526"
+      "webhookId": "b79d811a-94c9-4b15-9d9e-d6fb8eb1a612"
     },
     {
       "parameters": {
@@ -53,7 +53,7 @@
           "messageValues": [
             {
               "type": "SystemMessagePromptTemplate",
-              "message": "You are a helpful assistant running on a free, open-source language model hosted on Hugging Face. Answer clearly and concisely."
+              "message": "You are a helpful assistant running on a free, open-source language model via OpenRouter. Answer clearly and concisely."
             }
           ]
         }
@@ -61,25 +61,25 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
       "position": [
-        520,
-        -80
+        540,
+        -100
       ],
-      "id": "59150ed9-45e4-44c3-a4e0-aa6fa6625d8f",
+      "id": "33491621-4fa9-450d-9749-2f653d68dd0b",
       "name": "Basic LLM Chain"
     },
     {
       "parameters": {
-        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "model": "openrouter/free",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.lmOpenHuggingFaceInference",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        520,
+        540,
         160
       ],
-      "id": "0b459edc-9cee-4ba3-82fe-d6e6fdd6394a",
-      "name": "Hugging Face Inference Model"
+      "id": "9e54073f-5188-4a86-ba87-bf2a274735ed",
+      "name": "OpenRouter Chat Model"
     }
   ],
   "connections": {
@@ -94,7 +94,7 @@
         ]
       ]
     },
-    "Hugging Face Inference Model": {
+    "OpenRouter Chat Model": {
       "ai_languageModel": [
         [
           {
@@ -108,6 +108,6 @@
   },
   "pinData": {},
   "meta": {
-    "instanceId": "f9d9339255ac4ba0a11cb1f476041cea"
+    "instanceId": "0f36cf6cab324bc4b7c9f96e075f9e50"
   }
 }
