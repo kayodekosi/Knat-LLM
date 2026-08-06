@@ -101,10 +101,77 @@ Step 1 (search) ──▶ Search HF Models ──▶ Build Model Dropdown
   Google Drive, Merge).
 - A Google account, **if** you plan to use the "push to Google Drive & open in
   Colab" delivery option.
-- (Optional) A Hugging Face account and access token — only needed for gated
-  models (Llama, Gemma, etc.) or to raise Hugging Face API rate limits.
+- (Optional, admin-side) A Hugging Face account and access token, attached as
+  an n8n **Header Auth credential** on the 5 Hugging Face HTTP nodes — needed
+  for gated models (Llama, Gemma, etc.) or to raise Hugging Face API rate
+  limits. See [Secret / constant parameters](#secret--constant-parameters).
+  Not something end users of the form need to provide.
 
 ---
+
+## Secret / constant parameters
+
+This workflow deliberately separates **per-run choices** (collected via the
+form: model, dataset, hyperparameters, delivery method) from **secret,
+constant values** that should never be typed into a form or vary per user.
+
+There are two independent secret-parameter concerns here, handled two
+different ways — because they have genuinely different constraints:
+
+### 1. Authenticating this workflow's own Hugging Face API calls
+
+The 5 HTTP Request nodes that call huggingface.co (model search, model info,
+dataset search ×2, dataset info) ship with **Authentication: None** — this
+works fine for public models/datasets, just subject to Hugging Face's lower
+unauthenticated rate limit.
+
+To authenticate them, **on each of the 5 nodes**: set **Authentication** to
+**Generic Credential Type** → **Generic Auth Type**: **Header Auth** → create
+a credential with **Name** = `Authorization` and **Value** =
+`Bearer <your Hugging Face token>`.
+
+This uses n8n's built-in **Credentials** store — encrypted, configured once,
+never appears in the exported workflow JSON, and never exposed to whoever
+fills out the form. We use Credentials here rather than an environment
+variable (`$env`) because many self-hosted n8n instances set
+`N8N_BLOCK_ENV_ACCESS_IN_NODE`, which denies workflows *any* `$env` access —
+a real, common security policy on self-hosted instances, not a bug in this
+workflow. Credentials aren't affected by that setting.
+
+### 2. Injecting a token into the *generated notebook's* login cell
+
+This is a different problem: the generated `.ipynb` needs an actual token
+string written into its text so it can auto-login when someone opens it in
+Colab. n8n Credentials can't help here — by design, a workflow can *use* a
+credential to authenticate a request, but can never *read back* the raw
+secret value as data. And since `$env` may be blocked (see above), that
+route isn't reliably available either.
+
+So this value lives as a single, clearly-labeled constant —
+**`HF_TOKEN_CONSTANT`** — at the very top of the **Fill Notebook Template**
+code node. It ships **blank by default**, on purpose: this workflow is meant
+to be published in a public GitHub repo, and a filled-in token there would be
+committed in plain text along with everything else in the file.
+
+If you want every generated notebook to auto-login with a real token, the
+comment block around `HF_TOKEN_CONSTANT` documents two options:
+
+- **If your n8n instance allows `$env` access:** set `KNATWARE_HF_TOKEN` as an
+  environment variable on the instance, then change the constant to read
+  `$env.KNATWARE_HF_TOKEN || ""` instead of `""`.
+- **If not (or you'd rather not touch `$env` at all):** type your token
+  directly into the constant. This works regardless of
+  `N8N_BLOCK_ENV_ACCESS_IN_NODE`, but means the token now lives in plain text
+  inside this workflow file — **do not commit a filled-in copy to a public
+  repo** if you do this. Keep a private copy with the real value, and a
+  separate blank copy (like the one in this repo) for anything public.
+
+Either way, if `HF_TOKEN_CONSTANT` stays blank, the generated notebook's login
+cell prints an explanatory message instead of failing, and whoever runs the
+notebook can paste their own token in manually — see the comment block above
+`HF_TOKEN = "{{HF_TOKEN}}"` in
+`Knatware_LLM_FineTuning_V3_Colab_Template.ipynb`, Section 2, for the exact
+behavior and reasoning (it's documented there too, not just here).
 
 ## Setup
 
@@ -119,7 +186,11 @@ Step 1 (search) ──▶ Search HF Models ──▶ Build Model Dropdown
    **Upload to Google Drive** node and connect a Google Drive OAuth2 credential.
    This has to be authorized inside your own n8n instance — it can't be
    pre-filled by importing the JSON.
-4. **Activate the workflow**, then open the **Step 1** form's production URL
+4. **Authenticate Hugging Face calls** (optional) and **set a notebook login
+   token** (optional) — see
+   [Secret / constant parameters](#secret--constant-parameters) for exact
+   steps; both are opt-in and the workflow works without either.
+5. **Activate the workflow**, then open the **Step 1** form's production URL
    (found on the `Step 1 – Search Base Models` trigger node) to run it.
 
 ---
@@ -127,7 +198,8 @@ Step 1 (search) ──▶ Search HF Models ──▶ Build Model Dropdown
 ## Using it
 
 1. **Step 1:** optionally enter a search keyword (e.g. `qwen`, `llama`, `mistral`),
-   a size preference, your Hugging Face username, and a Hugging Face token.
+   a size preference, and your Hugging Face username. (No token field here —
+   see [Secret / constant parameters](#secret--constant-parameters).)
 2. **Step 2:** pick a model from the live dropdown, or type any Hugging Face model
    id in the override field.
 3. **Step 3:** pick a training dataset from the live dropdown (ranked by relevance
@@ -189,10 +261,14 @@ and throws a clear error if anything is missed.
   offered rather than crashing, and shows an orange warning banner on Step 4 so
   you know to double-check `MODEL_NAME`/`DATASET_NAME` before running the
   notebook.
-- **Security:** if you supply a Hugging Face token on Step 1, it's written in
-  plaintext into the generated notebook's login cell (`HF_TOKEN = "..."`) so the
-  notebook can log in automatically. Treat generated notebooks as sensitive if you
-  used a real token — don't commit them to a public repo.
+- **Security:** if you fill in `HF_TOKEN_CONSTANT` (see
+  [Secret / constant parameters](#secret--constant-parameters)), it's written
+  in plaintext into every generated notebook's login cell (`HF_TOKEN = "..."`)
+  so it can log in automatically — that's unavoidable if you want the notebook
+  to be immediately runnable. Treat generated notebooks as sensitive: don't
+  commit them to a public repo. And remember `HF_TOKEN_CONSTANT` itself is
+  plain text inside the workflow file if you fill it in directly rather than
+  via `$env` — don't commit a filled-in copy of the *workflow* either.
 - **n8n's paired-item lookup (`.item`) is unreliable across Merge nodes.** Every
   code node in this workflow uses `$('Node Name').first()` instead of
   `$('Node Name').item` for exactly this reason — keep that convention if you add
