@@ -33,62 +33,117 @@ deployment to a free Hugging Face Space.
 ## Architecture
 
 ```
-Step 1 (search) ──▶ Search HF Models ──▶ Build Model Dropdown
-                                              │
-                                              ▼
-                              Step 2 (pick model, or type custom)
-                                              │
-                                              ▼
-                                     Resolve Model Choice
-                                              │
-                                              ▼
-                              Fetch Model Info (Hugging Face)
-                                              │
-                                              ▼
-                            Build Dataset Search Params
-                              │                      │
-                              ▼                      ▼
-              Search HF Datasets by Family   Search HF Datasets by Task
-                              │                      │
-                              └────────┬─────────────┘
-                                       ▼
-                          Join Dataset Searches (Merge node)
-                                       │
-                                       ▼
-                            Build Dataset Dropdown
-                                       │
-                                       ▼
-                    Step 3 (pick dataset, or type custom)
-                                       │
-                                       ▼
-                            Resolve Dataset Choice
-                                       │
-                                       ▼
-                       Fetch Dataset Info (Hugging Face)
-                                       │
-                                       ▼
-                            Derive Recommendations
-                                       │
-                                       ▼
-                Step 4 (hyperparameters + delivery choice)
-                                       │
-                                       ▼
-                            Fill Notebook Template
-                                       │
-                                       ▼
-                              Delivery Method? (IF)
-                        ┌──────────────┴──────────────┐
-                        ▼                              ▼
-              Upload to Google Drive          Step 5b – Download
-                        │
-                        ▼
-                 Build Colab Link
-                        │
-                        ▼
-              Step 5a – Open in Colab
+Step 1 (search) ──▶ Config (edit token here) ──▶ Search HF Models ──▶ Build Model Dropdown
+                                                                            │
+                                                                            ▼
+                                                    Step 2 (pick model, or type custom)
+                                                                            │
+                                                                            ▼
+                                                                   Resolve Model Choice
+                                                                            │
+                                                                            ▼
+                                                    Fetch Model Info (Hugging Face)
+                                                                            │
+                                                                            ▼
+                                                          Build Dataset Search Params
+                                                            │                      │
+                                                            ▼                      ▼
+                                            Search HF Datasets by Family   Search HF Datasets by Task
+                                                            │                      │
+                                                            └────────┬─────────────┘
+                                                                     ▼
+                                                        Join Dataset Searches (Merge node)
+                                                                     ▼
+                                                          Build Dataset Dropdown
+                                                                     │
+                                                                     ▼
+                                                  Step 3 (pick dataset, or type custom)
+                                                                     │
+                                                                     ▼
+                                                          Resolve Dataset Choice
+                                                                     │
+                                                                     ▼
+                                                     Fetch Dataset Info (Hugging Face)
+                                                                     │
+                                                                     ▼
+                                                          Derive Recommendations
+                                                                     │
+                                                                     ▼
+                                              Step 4 (hyperparameters + delivery choice)
+                                                                     │
+                                                                     ▼
+                                                  Validate & Sanitize Parameters
+                                                                     │
+                                                                     ▼
+                                                          Fill Notebook Template
+                                                                     │
+                                                                     ▼
+                                                            Delivery Method? (IF)
+                                                       ┌──────────────┴──────────────┐
+                                                       ▼                              ▼
+                                             Upload to Google Drive          Step 5b – Download
+                                                       │
+                                                       ▼
+                                                Build Colab Link
+                                                       │
+                                                       ▼
+                                             Step 5a – Open in Colab
 ```
 
-23 nodes total, including two sticky notes with in-canvas setup instructions.
+26 nodes total, including two sticky notes with in-canvas setup instructions.
+
+---
+
+## Why the generated notebook shouldn't error out
+
+Everything the form collects passes through a dedicated **Validate &
+Sanitize Parameters** node before it ever reaches the notebook — it doesn't
+just trust whatever was typed in. Specifically, it:
+
+- **Checks `DATASET_TEXT_FIELD` against the dataset's real columns.** If it
+  doesn't exist (typo, or the user typed a field from a different dataset),
+  it's replaced with the auto-detected column instead of shipping a notebook
+  that crashes the moment `SFTTrainer` looks for it.
+- **Clamps `MAX_SEQ_LENGTH`** to both the chosen model's actual context
+  window *and* a 2048-token ceiling — long enough for most instruction data,
+  short enough to avoid a `CUDA out of memory` error on a free-tier T4, even
+  if someone types an enormous number.
+- **Falls back to a non-empty `LORA_TARGET_MODULES` list** if the field is
+  left blank or emptied out, using the architecture-appropriate defaults from
+  `Derive Recommendations`.
+- **Clamps every numeric hyperparameter** (`LORA_R`, `LORA_ALPHA`,
+  `LORA_DROPOUT`, `NUM_TRAIN_EPOCHS`, batch size, gradient accumulation,
+  generation settings) to ranges that won't crash or silently hang — a
+  non-numeric or out-of-range value is replaced with a safe default rather
+  than passed straight through to `TrainingArguments`.
+- **Rebuilds Hub repo ids and the Space name from valid parts** (lowercased,
+  stripped of anything that isn't a letter/number/`.`/`_`/`-`), so a stray
+  space or symbol can't produce a repo id the Hugging Face Hub API rejects at
+  push time.
+
+Every substitution is recorded in a `validationWarnings` array so nothing
+happens silently if you're inspecting the workflow's execution data.
+
+**The generated notebook itself also defends against drift** between
+generation time and run time (e.g., you hand-edit a value, or a dataset's
+schema changes before you get around to running the notebook):
+
+- **Section 4** checks that `DATASET_TEXT_FIELD` is actually a column on the
+  loaded dataset immediately after loading it, and raises a clear error
+  naming the real available columns if not — instead of a cryptic failure
+  several cells later inside `SFTTrainer`.
+- **Section 6** filters `LORA_TARGET_MODULES` against the model's real
+  module names before building `LoraConfig`, and automatically falls back to
+  auto-detected linear-layer names if none of the configured targets exist
+  on that particular model — `peft`'s own error message for a target-module
+  mismatch is not very actionable, so this catches it earlier with a
+  specific, useful message instead.
+
+None of this guarantees a training run will succeed (a model can still be
+too large for the assigned GPU, a dataset can still be malformed in ways
+that aren't inspectable ahead of time, etc.) — but it eliminates the class of
+errors caused by mismatched or malformed *parameters*, which is what this
+workflow controls.
 
 ---
 
@@ -101,77 +156,42 @@ Step 1 (search) ──▶ Search HF Models ──▶ Build Model Dropdown
   Google Drive, Merge).
 - A Google account, **if** you plan to use the "push to Google Drive & open in
   Colab" delivery option.
-- (Optional, admin-side) A Hugging Face account and access token, attached as
-  an n8n **Header Auth credential** on the 5 Hugging Face HTTP nodes — needed
-  for gated models (Llama, Gemma, etc.) or to raise Hugging Face API rate
-  limits. See [Secret / constant parameters](#secret--constant-parameters).
+- (Optional) A Hugging Face account and access token, pasted into the
+  **Config (edit token here)** node — needed for gated models (Llama, Gemma,
+  etc.) or to raise Hugging Face API rate limits. See
+  [Configuration: your Hugging Face token](#configuration-your-hugging-face-token).
   Not something end users of the form need to provide.
 
 ---
 
-## Secret / constant parameters
+## Configuration: your Hugging Face token
 
-This workflow deliberately separates **per-run choices** (collected via the
-form: model, dataset, hyperparameters, delivery method) from **secret,
-constant values** that should never be typed into a form or vary per user.
+There's exactly **one place** to configure a Hugging Face token: the
+**Config (edit token here)** node, right after the Step 1 trigger. Open it and
+edit the `HF_TOKEN` constant near the top of its code:
 
-There are two independent secret-parameter concerns here, handled two
-different ways — because they have genuinely different constraints:
+```js
+const HF_TOKEN = "";  // <-- paste your token between the quotes
+```
 
-### 1. Authenticating this workflow's own Hugging Face API calls
+That single value is used for two things:
 
-The 5 HTTP Request nodes that call huggingface.co (model search, model info,
-dataset search ×2, dataset info) ship with **Authentication: None** — this
-works fine for public models/datasets, just subject to Hugging Face's lower
-unauthenticated rate limit.
+1. **Authenticating this workflow's own Hugging Face API calls** (model
+   search, model info, dataset search, dataset info) — optional, works fine
+   blank too, just with Hugging Face's lower unauthenticated rate limit and
+   no access to gated models.
+2. **Auto-filling the `HF_TOKEN` login cell** in every notebook this workflow
+   generates (Section 2, "Login to Hugging Face") — optional; if blank, the
+   generated notebook just prints a message and expects whoever runs it to
+   paste their own token in instead.
 
-To authenticate them, **on each of the 5 nodes**: set **Authentication** to
-**Generic Credential Type** → **Generic Auth Type**: **Header Auth** → create
-a credential with **Name** = `Authorization` and **Value** =
-`Bearer <your Hugging Face token>`.
+Get a free token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
 
-This uses n8n's built-in **Credentials** store — encrypted, configured once,
-never appears in the exported workflow JSON, and never exposed to whoever
-fills out the form. We use Credentials here rather than an environment
-variable (`$env`) because many self-hosted n8n instances set
-`N8N_BLOCK_ENV_ACCESS_IN_NODE`, which denies workflows *any* `$env` access —
-a real, common security policy on self-hosted instances, not a bug in this
-workflow. Credentials aren't affected by that setting.
-
-### 2. Injecting a token into the *generated notebook's* login cell
-
-This is a different problem: the generated `.ipynb` needs an actual token
-string written into its text so it can auto-login when someone opens it in
-Colab. n8n Credentials can't help here — by design, a workflow can *use* a
-credential to authenticate a request, but can never *read back* the raw
-secret value as data. And since `$env` may be blocked (see above), that
-route isn't reliably available either.
-
-So this value lives as a single, clearly-labeled constant —
-**`HF_TOKEN_CONSTANT`** — at the very top of the **Fill Notebook Template**
-code node. It ships **blank by default**, on purpose: this workflow is meant
-to be published in a public GitHub repo, and a filled-in token there would be
-committed in plain text along with everything else in the file.
-
-If you want every generated notebook to auto-login with a real token, the
-comment block around `HF_TOKEN_CONSTANT` documents two options:
-
-- **If your n8n instance allows `$env` access:** set `KNATWARE_HF_TOKEN` as an
-  environment variable on the instance, then change the constant to read
-  `$env.KNATWARE_HF_TOKEN || ""` instead of `""`.
-- **If not (or you'd rather not touch `$env` at all):** type your token
-  directly into the constant. This works regardless of
-  `N8N_BLOCK_ENV_ACCESS_IN_NODE`, but means the token now lives in plain text
-  inside this workflow file — **do not commit a filled-in copy to a public
-  repo** if you do this. Keep a private copy with the real value, and a
-  separate blank copy (like the one in this repo) for anything public.
-
-Either way, if `HF_TOKEN_CONSTANT` stays blank, the generated notebook's login
-cell prints an explanatory message instead of failing, and whoever runs the
-notebook can paste their own token in manually — see the comment block above
-`HF_TOKEN = "{{HF_TOKEN}}"` in
-`Knatware_LLM_FineTuning_V3_Colab_Template.ipynb`, Section 2, for the exact
-behavior and reasoning (it's documented there too, not just here).
+**If you plan to share or commit this workflow file** (e.g. to GitHub): a
+filled-in token is saved in plain text right there in the node's code, which
+means it's also in the exported workflow JSON. Keep a private copy with the
+real token, and a separate blank copy — like the one in this repo — for
+anything public.
 
 ## Setup
 
@@ -186,10 +206,10 @@ behavior and reasoning (it's documented there too, not just here).
    **Upload to Google Drive** node and connect a Google Drive OAuth2 credential.
    This has to be authorized inside your own n8n instance — it can't be
    pre-filled by importing the JSON.
-4. **Authenticate Hugging Face calls** (optional) and **set a notebook login
-   token** (optional) — see
-   [Secret / constant parameters](#secret--constant-parameters) for exact
-   steps; both are opt-in and the workflow works without either.
+4. **Set your Hugging Face token** (optional) — open the **Config (edit token
+   here)** node and edit the `HF_TOKEN` constant. See
+   [Configuration: your Hugging Face token](#configuration-your-hugging-face-token)
+   for details; this is opt-in and the workflow works fine without it.
 5. **Activate the workflow**, then open the **Step 1** form's production URL
    (found on the `Step 1 – Search Base Models` trigger node) to run it.
 
@@ -199,7 +219,7 @@ behavior and reasoning (it's documented there too, not just here).
 
 1. **Step 1:** optionally enter a search keyword (e.g. `qwen`, `llama`, `mistral`),
    a size preference, and your Hugging Face username. (No token field here —
-   see [Secret / constant parameters](#secret--constant-parameters).)
+   see [Configuration: your Hugging Face token](#configuration-your-hugging-face-token).)
 2. **Step 2:** pick a model from the live dropdown, or type any Hugging Face model
    id in the override field.
 3. **Step 3:** pick a training dataset from the live dropdown (ranked by relevance
@@ -261,14 +281,14 @@ and throws a clear error if anything is missed.
   offered rather than crashing, and shows an orange warning banner on Step 4 so
   you know to double-check `MODEL_NAME`/`DATASET_NAME` before running the
   notebook.
-- **Security:** if you fill in `HF_TOKEN_CONSTANT` (see
-  [Secret / constant parameters](#secret--constant-parameters)), it's written
-  in plaintext into every generated notebook's login cell (`HF_TOKEN = "..."`)
-  so it can log in automatically — that's unavoidable if you want the notebook
-  to be immediately runnable. Treat generated notebooks as sensitive: don't
-  commit them to a public repo. And remember `HF_TOKEN_CONSTANT` itself is
-  plain text inside the workflow file if you fill it in directly rather than
-  via `$env` — don't commit a filled-in copy of the *workflow* either.
+- **Security:** if you fill in the `HF_TOKEN` constant (see
+  [Configuration: your Hugging Face token](#configuration-your-hugging-face-token)),
+  it's written in plaintext into every generated notebook's login cell
+  (`HF_TOKEN = "..."`) so it can log in automatically — that's unavoidable if
+  you want the notebook to be immediately runnable. Treat generated notebooks
+  as sensitive: don't commit them to a public repo. And remember the `Config`
+  node itself holds that same value in plain text if you fill it in — don't
+  commit a filled-in copy of the *workflow* either.
 - **n8n's paired-item lookup (`.item`) is unreliable across Merge nodes.** Every
   code node in this workflow uses `$('Node Name').first()` instead of
   `$('Node Name').item` for exactly this reason — keep that convention if you add
